@@ -7,7 +7,9 @@ morning <- paste0(patm, names_mana)
 #Reading all data frames
 dtmornign <- lapply(morning, rdscv) %>% bind_rows()
 # Gathering data
-gatherfm <- dtmornign %>% gather(Fecha, Estaciones)
+gatherfm <- dtmornign %>% 
+  gather(key = Date,value =  Value, hrai:winds)
+
 names(gatherfm) <- c('Fecha', 'Estaciones','Variable', 'Valor')
 gatherfm$Variable <- as.factor(gatherfm$Variable)
 gatherfm <-gatherfm %>% distinct(Fecha, Estaciones, Variable,.keep_all = T)%>%
@@ -18,7 +20,8 @@ patn <- './Tablas/CSV/Noche/'
 names_noch <-list.files(path = patn, pattern = '*[A,B,C,D,E].csv')
 night <- paste0(patn, names_noch)
 dtnight <- lapply(night, rdscv) %>% bind_rows()
-gatherfn <- dtnight %>% gather(Fecha, Estaciones)
+gatherfn <- dtnight %>% 
+  gather(key = Date,value =  Value, hrai:winds)
 names(gatherfn) <- c('Fecha', 'Estaciones','Variable', 'Valor')
 gatherfn$Variable <- as.factor(gatherfn$Variable)
 gatherfn <- gatherfn %>% distinct(Fecha, Estaciones, Variable,.keep_all = T) %>%
@@ -31,13 +34,36 @@ alldata <- bind_rows(gatherfn,gatherfm) %>% distinct(Fecha, Estaciones,
 
 # Filled data
 filled <- alldata %>% spread(Variable,Valor)
-filled <- filled[c(1:3245) , c(1:13)] %>% gather(Fecha,Estaciones)
+filled <- filled[c(1:3245) , c(1:13)] %>% 
+  gather(key = 'Variable', value = 'Value', atmpr:winds)
 names(filled) <- c('Fecha', 'Estaciones','Variable', 'Valor')
 
 filled <- filled %>% group_by(Estaciones,Variable) %>%  #mutate(tmp_lag = lag(Valor, n=3)) %>%
   mutate(Valor = ifelse(is.na(Valor), round(reapMA(Valor),1), Valor)) 
 
+#Niveles
+nivelnm <- list.files('./Tablas/Excel/2Project/',
+                      pattern = '*H', full.names = T)
 
+nivel <- read.xlsx(nivelnm,sheetIndex = 1) %>%
+  subset( FECHA <= as.POSIXct('2015-06-18 02:00:00')) %>%
+  mutate(Estaciones = 'H5007', Variable = 'Niveles')
+names(nivel) <- c('Fecha', 'Valor', 'Estaciones', 'Variable')
+  
+# Due to de bad quality of data just validate one is from
+# 2015-06-18 02:00:00
+
+#### For the second Project
+lajasnm <- list.files('./Tablas/Excel/2Project/', 
+                      full.names = T, pattern = '*M1246')
+lajas <- parLapply(cl, lajasnm, fun = xlsxread)  %>% bind_rows() %>%
+  subset( Fecha <= as.POSIXct('2015-06-18 02:00:00'))
+lajas <- lajas %>% gather(key = Fecha, value = Estaciones)
+names(lajas) <- c('Fecha', 'Estaciones', 'Variable', 'Valor')
+
+stopCluster(cl)
+###############
+   #Functions
 outtables <- function(data, metvar) {
   outdata <-  data %>% filter(Variable %in% c(as.character(metvar))) %>%
     spread(Estaciones,Valor)  %>% arrange(Fecha)
@@ -69,9 +95,7 @@ shinyServer(function(input, output) {
     )
     
     })
-  histogram <- renderPlot({
-    hist(rnorm(100))
-  })
+
 
   output$downloadData <- downloadHandler(
     filename = function(){paste(input$variabletabla, 
@@ -173,5 +197,18 @@ shinyServer(function(input, output) {
       write.csv(dt, file,row.names = T)
     } 
   )
+  
+  output$Lajasdt <-  DT::renderDataTable( DT::datatable({
+    return(lajas)
+  }))
+  
+  output$lajasME <- renderPlotly({
+    lajas %>% filter(Variable %in% input$sndM)  %>%
+      multiplotly(variable = input$sndM)
+  })
+  
+  output$lajasHI <- renderPlotly({
+    multiplotly(nivel, variable = input$sndH)
+  })
   
 })

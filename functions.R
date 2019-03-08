@@ -1,11 +1,18 @@
 library(zoo)
 library(data.table)
-#library(DT)
+library(DT)
 library(dplyr)
 library(tidyr)
+library(parallel)
+library(snow)
+library(xlsx)
 #library(ggplot2)
 #library(NISTunits)
 source('windRose.R')
+##### Make a cluster
+cl <-cl <- makeCluster(c("localhost","localhost"), type = "SOCK")
+
+
 #----- Indentifiers  for every station
 sttn <- c('*A.csv','*B.csv','*C.csv','*D.csv','*E.csv')
 patt <-  '*[A,B,C,D,E].csv' 
@@ -32,10 +39,18 @@ rdscv <- function(f) {
 }
 
 
+
 #---- Reado all stations
-read.sttn <- function(stations) {
-  na <- list.files( pattern = patt)
-  
+xlsxread <- function(f) {
+  require(xlsx)
+  require(dplyr)
+  dt <-  read.xlsx(file = eval(f), sheetIndex = 1, 
+                   startRow = 2) %>% mutate(Estaciones = 'Las Lajas')
+  names(dt) <-  c('Ind', 'Fecha', 'hrama', 'hrai','hrami','hrapro',
+                  'pre', 'atmpre', 'rsgs', 'rsgm', 'rsgp', 'rsrp',
+                  'tmpaip', 'tmpama','tmpami', 'tmpai', 'windd', 'winds',
+                  'Estaciones')
+  return(dt)
 }
 
 #----- Mean table
@@ -47,7 +62,7 @@ meandata <- function(dt) {
 
 #------ Control the number of data frames by current date
 data.control <- function(n) {
-  patt <-  '*[A,B,C,D,E].csv'
+  
   na <- list.files(pattern = '*[A,B,C,D,E].csv')
   date <- seq(as.Date("2016/09/25"), as.Date("2016/10/25"), by = 'days')
   currend <- Sys.Date()
@@ -124,8 +139,8 @@ facecplot <- function(data, var = c('hrai','atmpr','tmpai','pre'), ncol = 1, fac
   
 }
 
-windplot <- function(data,nbind = 5,ncol = 2, nrow = 2) {
-  data <- filled
+windplot <- function(data,nbind = 5,ncol = 2, nrow = 2,wrapby) {
+  data <- data
   del <- data%>% spread(Variable, Valor) 
   grupos <- c(0,seq(45/2,360, by = 45), 360 ) 
   labdir <-  c(360 ,seq(45,360, by = 45) ) 
@@ -143,7 +158,7 @@ windplot <- function(data,nbind = 5,ncol = 2, nrow = 2) {
   
   del %>% filter( !is.na(bindirs) ) %>%ggplot(aes(x = bindirs, fill = bindspd)) +
     geom_bar(position = 'stack') + coord_polar(start = -pi/8) + 
-    facet_wrap(~Estaciones,ncol = ncol, nrow = nrow) +
+    facet_wrap(wrapby,ncol = ncol, nrow = nrow) +
     labs(fill = 'Velocidad m/s')+ xlab('Frecuencia e Intensidad del Viento') +
     theme_bw()
   

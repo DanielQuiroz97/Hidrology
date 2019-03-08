@@ -2,8 +2,9 @@ library(dplyr)
 library(tidyr)
 library(plotly)
 library(shiny)
+library(shinythemes)
 library(corrplot)
-navbarPage('Meteorological Data Viewer',
+navbarPage('Meteorological Data Viewer', theme = shinytheme("slate"),
            tabPanel('Plot',
                     fluidPage(
                       fluidRow(
@@ -17,27 +18,27 @@ navbarPage('Meteorological Data Viewer',
                                h5("Daniel Quiroz y Gabriel Gaona"),
                                align = "center"
                         )
-                        ),
+                      ),
                       hr(),
-                    fluidRow(
-                      column(3, 
-                             sidebarPanel( 
-                               selectInput('data','Date Section:',
-                                           c('Data'    = 'morning',
-                                             #'Night'      = 'night',
-                                             #'All Data'   = 'all',
-                                             'Filled Data'= 'filled'),'filled'),
-                               selectInput('variable','Meteorological Variables',
-                                           c('Air Relative Humidity'   =   'hrai',
-                                             'Atmospheric Preassure'   =   'atmpr',
-                                             'Aire Temperature'        =   'tmpai',
-                                             'Precipitation'           =   'pre',
-                                             'Wind'                    =   'wind')),
-                               width = 25
-                             )),
-                      
-                      column(9,
-                             plotlyOutput('graph',width = '1000px',height = '490px'))
+                      fluidRow(
+                        column(3, 
+                               sidebarPanel( 
+                                 selectInput('data','Date Section:',
+                                             c('Data'    = 'morning',
+                                               #'Night'      = 'night',
+                                               #'All Data'   = 'all',
+                                               'Filled Data'= 'filled'),'filled'),
+                                 selectInput('variable','Meteorological Variables',
+                                             c('Air Relative Humidity'   =   'hrai',
+                                               'Atmospheric Preassure'   =   'atmpr',
+                                               'Aire Temperature'        =   'tmpai',
+                                               'Precipitation'           =   'pre',
+                                               'Wind'                    =   'wind')),
+                                 width = 25
+                               )),
+                        
+                        column(9,
+                               plotlyOutput('graph',width = '1000px',height = '490px'))
                       ) 
                     )
            ),
@@ -60,7 +61,7 @@ navbarPage('Meteorological Data Viewer',
                                downloadButton('downloadData', 'Download'),
                                width = 25
                              )
-                             ),
+                      ),
                       column(5,
                              h3('Data'),
                              h5('Just will be displayed 10 observations of the data'),
@@ -68,8 +69,8 @@ navbarPage('Meteorological Data Viewer',
                       column(4,
                              h3('Some Statistics'),
                              tableOutput('sumariodt'))
-                      )
-                    ),
+                    )
+           ),
            tabPanel('Correlation',
                     fluidRow(
                       column(3, 
@@ -105,7 +106,31 @@ navbarPage('Meteorological Data Viewer',
                       column(5,
                              h3('Correlation Plot', align = 'center'),
                              plotOutput('graphcorr'))
-                    ))
+                    )),
+           tabPanel('Segundo Proyecto',
+                    fluidRow(
+                      column(6, 
+                             h3('Metereological Variables'),
+                             selectInput('sndM', 'Data from 2015',
+                                         c('Humedad Relativa Instantanea'     = 'hrai',
+                                           'Precipitación'                    = 'pre',
+                                           'Presion Atmosferica'              = 'atmpre',
+                                           'Radicacion Solar Global Promedio' = 'rsgp',
+                                           'Radiacion Solar Global Reflejada' = 'rsgrp',
+                                           'Temperatura del Aire instantanea' = 'tmpai',
+                                           'Viento'                           = 'wind'))),
+                      column(6,
+                             h3('Hydrological Variables'),
+                             selectInput('sndH', 'Niveles',
+                                         c('Niveles' = 'Niveles')))
+                    ),
+                    hr(),
+                    fluidRow(
+                      column(6,
+                             plotlyOutput('lajasME')),
+                      column(6,
+                             plotlyOutput('lajasHI'))
+                      ))
 )
 
 
